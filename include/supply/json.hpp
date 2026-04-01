@@ -1,0 +1,43 @@
+#pragma once
+
+#include <fmt/ostream.h>
+#include <json/json.h>
+#include <regex>
+
+#if (FMT_VERSION >= 90000)
+
+template <>
+struct fmt::formatter<Json::Value> : ostream_formatter {};
+
+#endif
+
+namespace waybar::util {
+
+class JsonParser {
+ public:
+  JsonParser() = default;
+
+  Json::Value parse(const std::string& jsonStr) {
+    Json::Value root{};
+
+    // replace all occurrences of "\x" with "\u00", because JSON doesn't allow "\x" escape sequences
+    std::string modifiedJsonStr{replaceHexadecimalEscape(jsonStr)};
+
+    std::istringstream jsonStream{modifiedJsonStr};
+    std::string errs;
+    // Use local CharReaderBuilder for thread safety - the IPC singleton's
+    // parser can be called concurrently from multiple module threads
+    Json::CharReaderBuilder readerBuilder{};
+    if (!Json::parseFromStream(readerBuilder, jsonStream, &root, &errs)) {
+      throw std::runtime_error("Error parsing JSON: " + errs);
+    }
+    return root;
+  }
+
+ private:
+  static std::string replaceHexadecimalEscape(const std::string& str) {
+    static std::regex re{"\\\\x"};
+    return std::regex_replace(str, re, "\\u00");
+  }
+};
+}  // namespace waybar::util
