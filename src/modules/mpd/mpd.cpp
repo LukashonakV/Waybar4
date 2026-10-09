@@ -392,7 +392,7 @@ void MPD::fetchState() {
 }
 
 void MPD::handlePress(int n_press, double x, double y) {
-  auto button{controllClick_->get_current_button()};
+  auto button{gesture_click_->get_current_button()};
 
   if (n_press > 1 || connection_ == nullptr) {
     return;
